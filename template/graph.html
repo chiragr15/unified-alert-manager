@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+	<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+	<script src="https://code.highcharts.com/highcharts.js"></script>
+	<script src="https://code.highcharts.com/highcharts-3d.js"></script>
+	<script src="https://code.highcharts.com/modules/cylinder.js"></script>
+	<style>
+		.row {
+			background-color: #ffff80;
+		}
+	</style>
+
+</head>
+<body>
+	<div class="row">
+		<div class="col-md-2">
+			
+		</div>
+		<div id='container' class="col-md-8"></div>
+		<div class="col-md-2"></div>
+	</div>
+	<br><br>
+	<div class="row"></div>
+	<div class="row">
+		<div class="col-md-2"></div>
+		<div id='container2' class="col-md-8"></div>
+		<div class="col-md-2"></div>
+	</div>
+	<br><br>
+	<div class="row"></div>
+	<div class="row">
+		<div class="col-md-2"></div>
+		<div id="container3" class="col-md-8"></div>
+		<div class="col-md-2"></div>
+
+	</div>
+	<br><br>
+	<div class="row"></div>
+	<div class="row">
+		<div class="col-md-2"></div>
+		<div class="col-md-8" id="container4"></div>
+		<div class="col-md-2"></div>
+	</div>
+	<br><br>
+	<div class="row">
+		<div class="col-md-2"></div>
+		<div class="col-md-8" id="container5"></div>
+		<div class="col-md-2"></div>
+	</div>
+
+
+	<script type="text/javascript">
+		var s_data = '{{ software_alerts | tojson | safe }}';
+		var h_data = '{{ hardware_alerts | tojson | safe }}';
+		var sw_alert_data = JSON.parse(s_data);
+		var hw_alert_data = JSON.parse(h_data);
+		var firing_count=0;
+		var resolved_count=0;
+		var threshold_sw=0;
+		var vsperf_sw =0;
+		var vswichd_sw = 0;
+		var hits_series = [];
+		var time_vswitch_series = [];
+		for(var i=0;i<sw_alert_data.length;i++){
+			if(sw_alert_data[i]['type'] == 'threshold'){
+				console.log(sw_alert_data[i]['time_vswitched'])
+				time_vswitch_series.push({
+				name: sw_alert_data[i]['label'],
+				data:[sw_alert_data[i]['time_vswitched']]
+				});
+			};
+			
+		};
+		for(var i=0;i<sw_alert_data.length;i++){
+		    hits_series.push({
+		        name: sw_alert_data[i]['label'],
+		        data:[sw_alert_data[i]['num_hits']]
+		    });
+		};
+		var pattern_sw=0;
+		for (var i=0;i<sw_alert_data.length;i++){
+			if(sw_alert_data[i]['label'] == 'test failed - vswitchd'){
+				vswichd_sw +=1;
+			}
+			else if(sw_alert_data[i]['label'] == 'test failed - vsperf') {
+				vsperf_sw += 1;
+			}
+			else {
+				threshold_sw += 1;
+			}
+
+		};
+		for (var i = 0; i< hw_alert_data.length; i++){
+			if(hw_alert_data[i]['status'] == 'firing'){
+				firing_count += 1;
+			}
+			else {
+				resolved_count += 1;
+			}
+		};
+		console.log(firing_count);
+		document.addEventListener('DOMContentLoaded', () => {
+			Highcharts.chart('container', {
+				chart: {
+					type: 'bar',
+					options3d: {
+						enabled: true,
+						alpha: 8,
+						beta: 20,
+						depth: 60
+					}
+				},
+				credits: {
+				    	enabled: false
+				},
+				title: {
+					text: 'Alert Count'
+				},
+				yAxis: {
+					text: 'Type of Alerts'
+				},
+				xAxis: {
+					categories: ['Software', 'Hardware']
+				},
+				series: [
+					{
+						name: 'Software Count',
+						color: '#ff4d4d',
+						data: [sw_alert_data.length]
+					},
+					{
+						name: 'Hardware Count',
+						color: '#b366ff',
+						data: [hw_alert_data.length]
+					}
+				]
+
+			});
+
+			Highcharts.chart('container2', {
+			    chart: {
+			        type: 'cylinder',
+			        options3d: {
+			            enabled: true,
+			            alpha: 15,
+			            beta: 15,
+			            depth: 50,
+			            viewDistance: 25
+			        }
+			    },
+			    credits: {
+				    	enabled: false
+				},
+			    title: {
+			        text: 'Hit Count for Software Alerts'
+			    },
+			    plotOptions: {
+			        series: {
+			            depth: 25,
+			            colorByPoint: true
+			        }
+			    },
+			    series: hits_series
+			});
+
+			Highcharts.chart('container3', {
+				chart: {
+				        plotBackgroundColor: null,
+				        plotBorderWidth: null,
+				        plotShadow: false,
+				        type: 'pie',
+				        options3d: {
+			            enabled: true,
+			            alpha: 45,
+			            beta: 0
+			        	}
+				    },
+				    credits: {
+				    	enabled: false
+				    },
+				    title: {
+				        text: 'Alert Status'
+				    },
+				    tooltip: {
+				        pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+				    },
+				    accessibility: {
+				        point: {
+				            valueSuffix: '%'
+				        }
+				    },
+				    plotOptions: {
+				        pie: {
+				            allowPointSelect: true,
+				            cursor: 'pointer',
+				            depth: 35,
+				            dataLabels: {
+				                enabled: true,
+				                format: '{point.name}'
+				            },
+
+				            showInLegend: true
+				        }
+				    },
+				    yAxis: {
+				    	text: 'Hit Number'
+				    },
+				    series: [{
+				        name: 'Count',
+				        color: '#70db70',
+				        data: [{
+				            name: 'Firing',
+				            sliced: true,
+				            color: '#70db70',
+				            selected: true,
+				            y: firing_count
+				 		},
+				 		{
+				 			name: 'Resolved',
+
+				 			y: resolved_count
+				 		}
+				 		]
+				    }]
+			});
+              
+			Highcharts.chart('container4', {
+				chart: {
+					type: 'areaspline'
+				},
+				credits: {
+				    	enabled: false
+				},
+				title: {
+					text: 'Software Alert Types'
+				},
+				xAxis: {
+					categories: ['Alert Count']
+				},
+				yAxis: {
+					text: 'Type of Software Alerts'
+				},
+				series: [
+				{
+					name: 'VSPerf',
+					color: '#70db70',
+					data: [vsperf_sw]
+				},
+				{
+					name: 'VSwitchd',
+					color: '#ff3e30',
+					data: [vswichd_sw]
+				},
+				{
+					name: 'Threshold',
+					data: [threshold_sw]
+				}
+				]
+			});
+
+			var chart = new Highcharts.Chart({
+			    chart: {
+			        renderTo: 'container5',
+			        type: 'column',
+			        options3d: {
+			            enabled: true,
+			            alpha: 15,
+			            beta: 15,
+			            depth: 50,
+			            viewDistance: 25
+			        }
+			    },
+			    title: {
+			        text: 'Time difference in Log lines'
+			    },
+			    plotOptions: {
+			        column: {
+			            depth: 25
+			        }
+			    },
+			    series: time_vswitch_series
+			});             
+		});
+	</script>
+</body>
+</html>
